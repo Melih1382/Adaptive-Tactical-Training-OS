@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  agent-orchestrator:
+    build: ./backend
+    container_name: attos_backend_agents
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_INFERENCE_URL=http://local-llm:11434
+      - VECTOR_DB_URL=http://vectordb:8000
+    networks:
+      - attos_secure_net
+    restart: always
+
+  server-driven-ui:
+    build: ./frontend
+    container_name: attos_dynamic_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - agent-orchestrator
+    networks:
+      - attos_secure_net
+
+  local-llm:
+    image: ollama/ollama:latest
+    container_name: attos_local_llm
+    volumes:
+      - ./data/llm_models:/root/.ollama
+    networks:
+      - attos_secure_net
+
+  vectordb:
+    image: chromadb/chroma:latest
+    container_name: attos_rag_db
+    volumes:
+      - ./data/vector_index:/chroma/chroma
+    networks:
+      - attos_secure_net
+
+networks:
+  attos_secure_net:
+    driver: bridge
